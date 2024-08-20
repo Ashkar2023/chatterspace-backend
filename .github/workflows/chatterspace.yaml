@@ -1,0 +1,49 @@
+name: chatterspace CI
+
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+    branches: ["master"]
+
+jobs:
+  test-app:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [user_svc, message_svc, chat_svc, socket]
+    steps:
+      - name: checkout code 
+        uses: actions/checkout@v4
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: install dep & run tests
+        run: |
+          cd ${{ matrix.service}}
+          npm ci
+          npm test
+  
+  push-docker-images:
+    runs-on: ubuntu-latest
+    needs: test-app
+    strategy:
+      matrix:
+        service: [user_svc, message_svc, chat_svc, socket]
+    steps:
+      - uses: actions/checkout@v4
+      - name: docker build and push
+        run: cd ${{ matrix.service }} && docker build -t ashkar2023/chatterspace_${{matrix.service}} .
+      - run: docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+        env:
+          DOCKER_USERNAME: ${{secrets.DOCKER_USERNAME}}
+          DOCKER_PASSWORD: ${{secrets.DOCKER_PASSWORD}}
+      - run: docker push ashkar2023/chatterspace_${{matrix.service}}
+        
+    
+    
+        
+      
+        
+    
